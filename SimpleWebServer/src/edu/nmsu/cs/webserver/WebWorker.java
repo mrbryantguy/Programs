@@ -22,12 +22,16 @@ package edu.nmsu.cs.webserver;
  **/
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.Scanner;
 import java.util.TimeZone;
 
 public class WebWorker implements Runnable
@@ -53,11 +57,19 @@ public class WebWorker implements Runnable
 		System.err.println("Handling connection...");
 		try
 		{
+
 			InputStream is = socket.getInputStream();
 			OutputStream os = socket.getOutputStream();
-			readHTTPRequest(is);
+			// ***** my code
+			String request = readHTTPRequest(is); // http requests put into a string
+			File getReq = null;
+			if(request != null)
+			{
+				getReq = new File(request); // make a file with the http request
+				getReq = getReq.getAbsoluteFile(); // get the files absolute directory
+			}
 			writeHTTPHeader(os, "text/html");
-			writeContent(os);
+			writeContent(os, getReq); // pass getReq
 			os.flush();
 			socket.close();
 		}
@@ -72,9 +84,10 @@ public class WebWorker implements Runnable
 	/**
 	 * Read the HTTP request header.
 	 **/
-	private void readHTTPRequest(InputStream is)
+	private String readHTTPRequest(InputStream is)
 	{
 		String line;
+		String getReq = null;
 		BufferedReader r = new BufferedReader(new InputStreamReader(is));
 		while (true)
 		{
@@ -82,8 +95,13 @@ public class WebWorker implements Runnable
 			{
 				while (!r.ready())
 					Thread.sleep(1);
-				line = r.readLine();
+				line = r.readLine();				
 				System.err.println("Request line: (" + line + ")");
+				// code
+				if(line.startsWith("GET")) {
+					getReq = line.substring(5, line.length()-9);
+				}
+				
 				if (line.length() == 0)
 					break;
 			}
@@ -93,7 +111,7 @@ public class WebWorker implements Runnable
 				break;
 			}
 		}
-		return;
+		return getReq;
 	}
 
 	/**
@@ -130,11 +148,36 @@ public class WebWorker implements Runnable
 	 * @param os
 	 *          is the OutputStream object to write to
 	 **/
-	private void writeContent(OutputStream os) throws Exception
+	private void writeContent(OutputStream os, File getReq) throws Exception
 	{
-		os.write("<html><head></head><body>\n".getBytes());
-		os.write("<h3>My web server works!</h3>\n".getBytes());
-		os.write("</body></html>\n".getBytes());
+		if (getReq.isFile()) // check if http request is a file
+		{
+			BufferedReader br = new BufferedReader(new FileReader(getReq));
+			String ln;
+			while((ln = br.readLine()) != null){
+				
+				if(ln.contains("<cs371date>")) 
+				{
+					ln = ln.replaceFirst("<cs371date>", "September 16th, 2020");
+				} 
+				if(ln.contains("<cs371server>"))
+				{
+					ln = ln.replaceFirst("<cs371server>", "BZB's Server");
+				}
+				
+				os.write(ln.getBytes());
+			} // end while
+		}
+		else
+		{
+			File e404 = new File("res/acc/404.php");
+			e404 = e404.getAbsoluteFile();
+			BufferedReader br = new BufferedReader(new FileReader(e404));
+			String ln;
+			while((ln = br.readLine()) != null){
+				os.write(ln.getBytes());
+			} // end while
+		}
 	}
 
 } // end class
