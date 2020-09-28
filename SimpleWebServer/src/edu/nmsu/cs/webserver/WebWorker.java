@@ -30,6 +30,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.text.DateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.TimeZone;
@@ -154,11 +156,14 @@ public class WebWorker implements Runnable
 		{
 			BufferedReader br = new BufferedReader(new FileReader(getReq));
 			String ln;
+			DateTimeFormatter date = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+			LocalDateTime current = LocalDateTime.now();
+			String today = date.format(current);
 			while((ln = br.readLine()) != null){
 				
 				if(ln.contains("<cs371date>")) 
 				{
-					ln = ln.replaceFirst("<cs371date>", "September 16th, 2020");
+					ln = ln.replaceFirst("<cs371date>", today);
 				} 
 				if(ln.contains("<cs371server>"))
 				{
