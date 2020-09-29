@@ -1,4 +1,14 @@
+// Name:	Bryant Hernandez
+// Class:	CS371 - M01
+// Program:	P2
+// Purpose: Modified webworker.java initially created by Jon Cook, edited by Bryant in order to implement
+//			the ability to serve html or image files as well as return a 404 error code when an incorrect
+//			file name or file that doesn't exist is given.
+// Date:	9/28/2020
+
 package edu.nmsu.cs.webserver;
+
+import java.awt.image.BufferedImage;
 
 /**
  * Web worker: an object of this class executes in its own new thread to receive and respond to a
@@ -23,8 +33,10 @@ package edu.nmsu.cs.webserver;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -70,7 +82,15 @@ public class WebWorker implements Runnable
 				getReq = new File(request); // make a file with the http request
 				getReq = getReq.getAbsoluteFile(); // get the files absolute directory
 			}
-			writeHTTPHeader(os, "text/html");
+			// check the type of the file being requested in order to give the correct content type
+			if(request.contains(".gif"))
+				writeHTTPHeader(os, "image/gif", getReq);
+			else if(request.contains(".jpg"))
+				writeHTTPHeader(os, "image/jpeg", getReq);
+			else if(request.contains(".png"))
+				writeHTTPHeader(os, "image/png", getReq);
+			else
+				writeHTTPHeader(os, "text/html", getReq);
 			writeContent(os, getReq); // pass getReq
 			os.flush();
 			socket.close();
@@ -99,7 +119,7 @@ public class WebWorker implements Runnable
 					Thread.sleep(1);
 				line = r.readLine();				
 				System.err.println("Request line: (" + line + ")");
-				// code
+				// out of the request line, only get the file
 				if(line.startsWith("GET")) {
 					getReq = line.substring(5, line.length()-9);
 				}
@@ -124,16 +144,20 @@ public class WebWorker implements Runnable
 	 * @param contentType
 	 *          is the string MIME content type (e.g. "text/html")
 	 **/
-	private void writeHTTPHeader(OutputStream os, String contentType) throws Exception
+	private void writeHTTPHeader(OutputStream os, String contentType, File getReq) throws Exception
 	{
 		Date d = new Date();
 		DateFormat df = DateFormat.getDateTimeInstance();
 		df.setTimeZone(TimeZone.getTimeZone("GMT"));
-		os.write("HTTP/1.1 200 OK\n".getBytes());
+		if(getReq.isFile()) //check to see if the file from request line is an actual file in order
+							//to give the correct status code in the header
+			os.write("HTTP/1.1 200 OK\n".getBytes());
+		else
+			os.write("HTTP/1.1 404 Not Found\n".getBytes());
 		os.write("Date: ".getBytes());
 		os.write((df.format(d)).getBytes());
 		os.write("\n".getBytes());
-		os.write("Server: Jon's very own server\n".getBytes());
+		os.write("Server: Bryant's very own server\n".getBytes());
 		// os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
 		// os.write("Content-Length: 438\n".getBytes());
 		os.write("Connection: close\n".getBytes());
@@ -152,30 +176,46 @@ public class WebWorker implements Runnable
 	 **/
 	private void writeContent(OutputStream os, File getReq) throws Exception
 	{
+		String file = getReq.toString();
 		if (getReq.isFile()) // check if http request is a file
 		{
-			BufferedReader br = new BufferedReader(new FileReader(getReq));
-			String ln;
-			DateTimeFormatter date = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-			LocalDateTime current = LocalDateTime.now();
-			String today = date.format(current);
-			while((ln = br.readLine()) != null){
-				
-				if(ln.contains("<cs371date>")) 
-				{
-					ln = ln.replaceFirst("<cs371date>", today);
-				} 
-				if(ln.contains("<cs371server>"))
-				{
-					ln = ln.replaceFirst("<cs371server>", "BZB's Server");
+			if(file.contains(".html")) { // check to see if it is an html file
+				// code which uses BufferedReader to read in and output an html file
+				BufferedReader br = new BufferedReader(new FileReader(getReq));
+				String ln;
+				DateTimeFormatter date = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+				LocalDateTime current = LocalDateTime.now();
+				String today = date.format(current);
+				while((ln = br.readLine()) != null){ // replace the labels in the html file with actual data
+					
+					if(ln.contains("<cs371date>")) 
+					{
+						ln = ln.replaceFirst("<cs371date>", today);
+					} 
+					if(ln.contains("<cs371server>"))
+					{
+						ln = ln.replaceFirst("<cs371server>", "BZB's Server");
+					}
+					
+					os.write(ln.getBytes());
+				} // end while
+			}
+			else if(file.contains(".jpg") || file.contains(".gif") || file.contains(".png")) { // check to see if it is an image file
+				// code which uses InputStream to read the image file in binary mode and output it to our server
+				try(
+					InputStream is = new FileInputStream(getReq);
+			    ) {
+					byte[] buffer = new byte[4096];
+					while(is.read(buffer) != -1)
+						os.write(buffer);
+				} catch (IOException ex) {
+		            System.out.println("Error opening file\n");
 				}
-				
-				os.write(ln.getBytes());
-			} // end while
+			}
 		}
-		else
+		else // if the file given is not an actual file, return a 404 error message
 		{
-			File e404 = new File("res/acc/404.php");
+			File e404 = new File("res/acc/404.html");
 			e404 = e404.getAbsoluteFile();
 			BufferedReader br = new BufferedReader(new FileReader(e404));
 			String ln;
