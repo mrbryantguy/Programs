@@ -9,7 +9,6 @@ package edu.nmsu.cs.scoring;
  * scores, and the computing of the competitor's overall score.
  * 
  * @author Jon Cook, Ph.D.
- * 
  ***/
 
 public class RacingScore1
@@ -37,11 +36,9 @@ public class RacingScore1
 
 	public int overallScore()
 	{
-		int s;
+		int s = score1;
 		if (score1 < score2)
 			s = score2;
-		else
-			s = score1;
 		if (s > score3)
 			s = score3;
 		s = (score1 + score2 + score3) - s;
