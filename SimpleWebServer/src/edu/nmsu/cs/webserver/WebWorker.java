@@ -83,11 +83,11 @@ public class WebWorker implements Runnable
 				getReq = getReq.getAbsoluteFile(); // get the files absolute directory
 			}
 			// check the type of the file being requested in order to give the correct content type
-			if(request.contains(".gif"))
-				writeHTTPHeader(os, "image/gif", getReq);
-			else if(request.contains(".jpg"))
+			if(request.contains(".gif") && getReq.isFile()) // also check to see if the request is a real file
+				writeHTTPHeader(os, "image/gif", getReq); // or else you will get an image header but no image
+			else if(request.contains(".jpg") && getReq.isFile())
 				writeHTTPHeader(os, "image/jpeg", getReq);
-			else if(request.contains(".png"))
+			else if(request.contains(".png") && getReq.isFile())
 				writeHTTPHeader(os, "image/png", getReq);
 			else
 				writeHTTPHeader(os, "text/html", getReq);

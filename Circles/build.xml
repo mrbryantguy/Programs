@@ -1,0 +1,63 @@
+<project name="Circles" default="run">
+  <description>
+    Buildfile for Circles.
+  </description>
+  <!-- set properties -->
+  <property name="src" location="src"/>
+  <property name="bin" location="bin/"/>
+  <property name="lib" location="lib/"/>
+	
+  <target name="compile" description="compiles all java files to /bin">
+  	<mkdir dir="${bin}"/>
+  	<javac srcdir="${src}" destdir="${bin}" includeantruntime="false" debug="true">
+      <classpath>
+        <fileset dir="${lib}">
+          <include name="**/*.jar"/>
+        </fileset>
+      </classpath>
+    </javac>
+  </target>
+
+  <target name="clean" description="deletes all class files">
+    <delete dir="${bin}"/>
+  </target>
+
+  <target name="testCircle1" description="test suite for Circle1Test">
+    <junit jvm="org.junit.runner.JUnitCore" fork="true">
+        <classpath>
+         <fileset dir="${lib}">
+            <include name="**/*.jar"/>
+         </fileset>
+        </classpath>
+      <jvmarg value="Circle1Test"/>
+    </junit>
+  </target>
+
+  <target name="testCircle2" description="test suite for Circle2Test">
+    <junit jvm="org.junit.runner.JUnitCore Circle2Test" fork="true">
+        <classpath>
+         <fileset dir="${lib}">
+            <include name="**/*.jar"/>
+         </fileset>
+        </classpath>
+    </junit>
+  </target>
+	
+  <target name="test" depends="testCircle1, testCircle2" 
+    description="Test suite which invokes both circle tests">
+  </target>
+
+  <target name="run" depends="clean, compile, test" 
+    description="Default target which calls both test suites and then calls CircleRun with valid args">
+			<java classname="edu.nmsu.cs.circles.CircleRun" fork="true">
+				<classpath path="${bin}" />
+				<arg value="1" />
+				<arg value="2" />
+				<arg value="3" />
+				<arg value="4" />
+				<arg value="5" />
+				<arg value="6" />
+      </java>
+    </target>
+
+</project>
